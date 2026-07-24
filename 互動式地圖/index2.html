@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>歷史軌跡互動地圖</title>
+<style>
+  /* 基礎頁面設定：復古背景色 */
+  body { 
+    font-family: "微軟正黑體", "Heiti TC", sans-serif; 
+    background-color: #e4d8c8; 
+    margin: 0; 
+    padding: 20px; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  h1 {
+    color: #4a3320;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    margin-bottom: 5px;
+  }
+  
+  .hint {
+    color: #665544;
+    margin-bottom: 20px;
+  }
+
+  /* 地圖容器：設定相對定位，讓標記可以精準放置 */
+  .map-container { 
+    position: relative; 
+    width: 100%;
+    max-width: 900px; /* 依照原圖直式比例調整最大寬度 */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    border: 3px solid #8b7355;
+    border-radius: 4px;
+    background-color: #fff;
+  }
+  
+  /* 地圖底圖 */
+  .map-image { 
+    width: 100%; 
+    height: auto; 
+    display: block; 
+  }
+
+  /* 互動標記 (會呼吸閃爍的圓點) */
+  .hotspot {
+    position: absolute;
+    width: 30px; 
+    height: 30px;
+    background-color: rgba(192, 57, 43, 0.85); /* 復古紅 */
+    border: 2px solid #fff;
+    border-radius: 50%; 
+    transform: translate(-50%, -50%); /* 確保座標對齊圓心 */
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    animation: pulse 2s infinite; /* 呼吸燈動畫 */
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  
+  .hotspot:hover { 
+    background-color: rgba(231, 76, 60, 1);
+    transform: translate(-50%, -50%) scale(1.1);
+    animation: none;
+  }
+
+  /* 呼吸動畫定義 */
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(192, 57, 43, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
+  }
+
+  /* 彈出視窗 (Modal) 樣式 - 仿古文件風格 */
+  .modal {
+    display: none; 
+    position: fixed; 
+    top: 50%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fdfaf0; 
+    background-image: radial-gradient(#e6daca 1px, transparent 1px);
+    background-size: 20px 20px; /* 微微的紙張紋理感 */
+    padding: 30px; 
+    border-radius: 5px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6); 
+    z-index: 1000;
+    width: 85%;
+    max-width: 400px; 
+    border: 2px solid #a68a61;
+  }
+  
+  .modal-header {
+    border-bottom: 2px dashed #a68a61;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+  }
+
+  .modal-header h3 { 
+    margin: 0 0 5px 0; 
+    color: #5c1e16; 
+    font-size: 1.1rem;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    color: #2c1e16;
+    font-size: 1.5rem;
+  }
+
+  .modal-body p { 
+    line-height: 1.8; 
+    color: #333; 
+    font-size: 1.05rem;
+    text-align: justify;
+    margin: 0;
+  }
+  
+  /* 關閉按鈕 */
+  .close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #8b7355; 
+    color: #fdfaf0; 
+    border: none; 
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer; 
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .close-btn:hover { background: #5c1e16; }
+
+  /* 背景遮罩層 */
+  .overlay {
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%; 
+    background: rgba(20, 15, 10, 0.7); 
+    backdrop-filter: blur(2px);
+    z-index: 999;
+  }
+</style>
+</head>
+<body>
+
+<h1>歷史軌跡調查地圖</h1>
+<p class="hint">點擊地圖上閃爍的紅點，解鎖檔案紀錄。</p>
+
+<div class="map-container">
+  <!-- 請確保 "theMap.png" 與此 HTML 檔案放在同一個資料夾 -->
+  <img src="theMap.png" alt="歷史調查底圖" class="map-image">
+
+  <!-- ========================================== -->
+  <!-- 📍 互動標記設定 (修改 top 與 left 百分比即可移動位置) -->
+  <!-- ========================================== -->
+  
+  <div class="hotspot" style="top: 18%; left: 16%;" onclick="openModal('box1')">1</div>
+  <div class="hotspot" style="top: 38%; left: 16%;" onclick="openModal('box2')">2</div>
+  <div class="hotspot" style="top: 61%; left: 16%;" onclick="openModal('box3')">3</div>
+  <div class="hotspot" style="top: 86%; left: 16%;" onclick="openModal('box4')">4</div>
+  
+  <div class="hotspot" style="top: 68%; left: 49%;" onclick="openModal('box5')">5</div>
+  <div class="hotspot" style="top: 86%; left: 49%;" onclick="openModal('box6')">6</div>
+  
+  <div class="hotspot" style="top: 31%; left: 86%;" onclick="openModal('box7')">7</div>
+  <div class="hotspot" style="top: 83%; left: 80%;" onclick="openModal('box8')">8</div>
+
+</div>
+
+<!-- 暗色遮罩 -->
+<div class="overlay" id="overlay" onclick="closeModals()"></div>
+
+<!-- ========================================== -->
+<!-- 📝 彈出視窗內容 (文字已根據原圖 AI 生成內容還原) -->
+<!-- ========================================== -->
+
+<!-- 視窗 1 -->
+<div id="box1" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>1. 1947年・圖書館</h3>
+    <h2>首任圖書館主任</h2>
+  </div>
+  <div class="modal-body">
+    <p>經校長王石安邀請、建議、成任館共崗科副教授。</p>
+  </div>
+</div>
+
+<!-- 視窗 2 -->
+<div id="box2" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>2. 教職員宿舍</h3>
+    <h2>日語讀書會與同事情誼</h2>
+  </div>
+  <div class="modal-body">
+    <p>與吳聲達、黃祖權等同事宿舍，常以日文交流中同事情誼。</p>
+  </div>
+</div>
+
+<!-- 視窗 3 -->
+<div id="box3" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>3. 1950年9月・格致堂</h3>
+    <h2>與高貞潔完婚</h2>
+  </div>
+  <div class="modal-body">
+    <p>黃祖權借來燕尾服，劉涅貞借來賣尾華置孅帶布新新家。</p>
+  </div>
+</div>
+
+<!-- 視窗 4 -->
+<div id="box4" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>4. 1950年5月2日・圖書館</h3>
+    <h2>張貼禁書公告</h2>
+  </div>
+  <div class="modal-body">
+    <p>以幽默嘲諷語氣迅公告訃評治政府查禁書新毀撼政策，後進情清單位記與簡單記錄，後列日常天列的搜疊輔會位記後的證據之一。</p>
+  </div>
+</div>
+
+<!-- 視窗 5 -->
+<div id="box5" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>5. 1950年5月，台南市車站</h3>
+    <h2>遭檢舉與逮捕</h2>
+  </div>
+  <div class="modal-body">
+    <p>線民丘同德學報台中院好評組織名列單之名，逮捕偵訊。</p>
+  </div>
+</div>
+
+<!-- 視窗 6 -->
+<div id="box6" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>6. 檔案室</h3>
+    <h2>情節離奇的自白書</h2>
+  </div>
+  <div class="modal-body">
+    <p>筆錄中出現一份情節造奇的自白書，相較閹出現其他的是捏造的。</p>
+  </div>
+</div>
+
+<!-- 視窗 7 -->
+<div id="box7" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>7. 綠島監獄</h3>
+    <h2>火燒島的勞動歲月</h2>
+  </div>
+  <div class="modal-body">
+    <p>1951年被押送，絕亞熏到對風第十的蹣元不能努力犧牲，因病獲釋。</p>
+  </div>
+</div>
+
+<!-- 視窗 8 -->
+<div id="box8" class="modal">
+  <button class="close-btn" onclick="closeModals()">×</button>
+  <div class="modal-header">
+    <h3>8. 新店軍人監獄與安坑刑場</h3>
+    <h2>最後的告別</h2>
+  </div>
+  <div class="modal-body">
+    <p>1953年樹檻的轉變，進入監抗刑波，一時間陰濕，艱寂刑壞人。</p>
+  </div>
+</div>
+
+<script>
+  // 開啟視窗邏輯
+  function openModal(id) {
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById(id).style.display = 'block';
+  }
+  
+  // 關閉視窗邏輯
+  function closeModals() {
+    document.getElementById('overlay').style.display = 'none';
+    var modals = document.querySelectorAll('.modal');
+    modals.forEach(function(modal) {
+      modal.style.display = 'none';
+    });
+  }
+</script>
+</body>
+</html>
